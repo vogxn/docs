@@ -12,7 +12,9 @@ If you have come to this wiki you should have the cloudstack code cloned to your
 > the tests. If this is set - remember to unset the MAVEN_OPTS in the shell
 > environment where tests are run.
 
-### Linux, Mac
+### Python
+
+#### Linux, Mac
 
 All the tests require Python 2.7 to be installed. If you have multiple pythons ensure that python2.7 is the default python selected when you type python in the shell prompt. If not - alias the `python2.7` binary in `/usr/local/bin` to `python`. 
 
@@ -44,13 +46,13 @@ Mac OSX users who have homebrew can simply install python using brew. This will 
 $ brew install python
 ```
 
-### Windows
+#### Windows
 Windows python installation is easier since binary packages are simpler to click and install.
 
-#### non-Cygwin
-If you are not using cygwin download the python installer for Python 2.7 and run it from the [python downloads page](6). Then install [pip](7) from binaries for python 2.7.
+##### Non-Cygwin
+If you are not using cygwin download the python installer for Python 2.7 from the [python downloads page](6) and run it.Then install [pip](7) from binaries for python 2.7.
 
-#### Cygwin
+##### Cygwin
 Run the Cygwin setup.exe executable. On the dialog boxes under the Python section you should see the latest python 2.7 interpreter. Install it. If you have an older python already installed in Cygwin make sure to uninstall that before upgrading to 2.7. Set your environment variables to point `python` to the new `python 2.7` installed python on your cygdrive. Try alternate mirrors if you find python 2.7 is not available on your default mirror.
 
 To install pip the package manager you will have to install [setuptools](8) for cygwin and then do:
@@ -59,6 +61,27 @@ To install pip the package manager you will have to install [setuptools](8) for 
 $ easy_install pip
 ```
 This should link the python 2.7 installation and the pip installation for you.
+
+> Warning: The pydev plugin does not work well with cygwin and has problems
+> resolving paths between cygwin and windows environments. At this time there
+> is no available alternative for auto-completion plugins for Eclipse
+
+### PyDev installation
+
+[PyDev](9) is a python plugin for eclipse which features auto-completion of python modules. To install PyDev -
+- go to Help->Install New Software
+- in the Work With: dialog box - add `http://pydev.org/updates`
+- select the pydev packages shown and click on Install
+
+That should be it. If you face any problems follow the more in-depth pydev installation [here](http://pydev.org/manual_101_root.html). 
+
+You should configure your pydev installation to use the python2.7 interpreter you installed and configured earlier. To do this :
+- go to Window -> Preferences
+- Pydev -> Interpreter
+- Either use AutoConfig or select the path to you python executable
+
+### Marvin Installation and Configuration
+Please refer to the [Marvin](Testing with Python) wiki page for how to install and configure marvin.
 
 ## Running tests
 h2. Integrated Simulator+Marvin test
@@ -133,3 +156,4 @@ Instructions on how to roll your own tests into the checkin tests can be found [
 [6] http://www.python.org/download/releases/
 [7] http://www.lfd.uci.edu/~gohlke/pythonlibs/#pip
 [8] https://pypi.python.org/pypi/setuptools#cygwin-mac-os-x-linux-other
+[9] http://pydev.org/manual_101_root.html
