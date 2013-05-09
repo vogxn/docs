@@ -83,61 +83,68 @@ You should configure your pydev installation to use the python2.7 interpreter yo
 ### Marvin Installation and Configuration
 Please refer to the [Marvin](Testing with Python) wiki page for how to install and configure marvin.
 
-## Running tests
-h2. Integrated Simulator+Marvin test
+## Running integrated Simulator+Marvin tests
 
-To run the basic tests. Your build steps should be as follows
+These build steps are similar to the regular build, deploydb and run of the management server. Only some extra switches are required to run the tests and should be easy to recall and run anytime:
 
-h4. Building
+### Building
 
-
-{code}
+Build with the -Dsimulator switch to enable simulator hypervisors
+```bash
 $ mvn -Pdeveloper -Dsimulator clean install 
-{code}
+```
 
-h4. Deploy database
+### Deploy database
 
-
-{code}
+In addition to the regular deploydb you will be deploying the `simulator` database where all the agent information is stored for the mockvms, mockvolumes etc.
+```bash
 $ mvn -Pdeveloper -pl developer -Ddeploydb
 $ mvn -Pdeveloper -pl developer -Ddeploydb-simulator
-{code}
+```
 
-h4. Start the management server
+### Start the management server
 
+Same as regular jetty:run.
 
-{code}
-mvn -pl client jetty:run
-{code}
-{color:#000000}{*}_(One time installation of Marvin)_{*}{color}
+```bash
+$ mvn -pl client jetty:run
+```
 
-The integration test uses marvin and needs it to be installed in your system libraries where python can find them. The developer profile compilation above builds marvin for you and puts the tarball in tools/marvin/dist/Marvin-0.1.0.tar.gz.
+> To enable the debug ports before the run
+> `export MAVEN_OPTS="-XX:MaxPermSize=512m -Xmx2g -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n"`
 
-To install marvin:
+### Sync Marvin APIs
 
-{code}
-easy_install pip #if you need to install pip
-pip install Marvin-0.1.0.tar.gz
-{code}
+The integration test uses marvin and needs it to be installed in your system libraries where python can find them. The developer profile compilation above builds marvin for you and puts the tarball in tools/marvin/dist/Marvin-0.1.0.tar.gz. Marvin also provides the sync facility which contacts the API discovery plugin to rebuild API classes from your management server:
+ 
+To install marvin from packages:
 
-Alternatively one can install/upgrade marvin using the sync mechanism.
+```bash
+$ pip install Marvin-0.1.0.tar.gz
+```
 
-h4. *Sync latest APIs*
+You can install/upgrade marvin using the sync mechanism.
 
-Sometimes you want to synchronize marvin with the new APIs that you have introduced locally or any alterations you may have made to an existing API. In such cases you can sync marvin's libraries as follows.&nbsp;
-
-{code}
+```bash
 $ sudo mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
-{code}
+```
+
 This needs sudo privileges since it will call on pip to upgrade the existing marvin installation on your machine. The endpoint is where your management server is running and is exposing the API discovery plugin.
 
-h4. {color:#000000}{*}Run the integration test{*}{color}
+### Run the integration test
 
-In a separate session you can use the following commands to bring up an advanced zone with two simulator hypervisors followed by run tests that are 'tagged' to run on the simulator:
-{code}
-$ mvn -Pdeveloper,marvin.setup -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test #Setup environment
-$ mvn -Pdeveloper,marvin.test -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test  #Run checkin tests
-{code}
+In a separate session you can use the following commands to bring up an advanced zone with two simulator hypervisors followed by run tests that are _tagged_ to run on the simulator:
+
+##### marvin.setup to bring up a zone with the config specified
+```bash
+$ mvn -Pdeveloper,marvin.setup -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test
+```
+Example configs are available in `setup/dev/advanced.cfg` and `setup/dev/basic.cfg`
+
+##### marvin.test to run the checkin tests that are tagged to run on the simulator
+```bash
+$ mvn -Pdeveloper,marvin.test -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test
+```
 
 Instructions on how to roll your own tests into the checkin tests can be found [here|https://cwiki.apache.org/confluence/display/CLOUDSTACK/Marvin+-+Testing+with+Python#Marvin-TestingwithPython-CheckinTests]
 
