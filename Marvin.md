@@ -80,34 +80,51 @@ Without much ado, let us jump into test case writing. Following is a working sce
 * tearDown the user account - basically delete it to cleanup acquired resources
 
 ```python
-from marvin.cloudstackTestCase import *
-from marvin.cloudstackAPI import *
+#All tests inherit from cloudstackTestCase
+from marvin.cloudstackTestCase import cloudstackTestCase
 
-from marvin.integration.lib.utils import *
-from marvin.integration.lib.base import *
-from marvin.integration.lib.common import *
+#Import Integration Libraries
+
+#base - contains all resources as entities and defines create, delete, list operations on them
+from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering
+
+#utils - utility classes for common cleanup, external library wrappers etc
+from marvin.integration.lib.utils import cleanup_resources
+
+#common - commonly used methods for all tests are listed here
+from marvin.integration.lib.common import get_zone, get_domain, get_template
 
 class TestData(object):
+    """Test data object that is required to create resources
+    """
     def __init__(self):
-       self.testdata = {
-                "account": {
-                    "email": "test@test.com",
-                    "firstname": "Test",
-                    "lastname": "User",
-                    "username": "test",
-                    "password": "password",
+        self.testdata = {
+            #data to create an account
+            "account": {
+                "email": "test@test.com",
+                "firstname": "Test",
+                "lastname": "User",
+                "username": "test",
+                "password": "password",
+            },
+            #data reqd for virtual machine creation
+            "virtual_machine" : {
+                "name" : "testvm",
+                "displayname" : "Test VM",
+            },
+            #small service offering
+            "service_offering": {
+                "small": {
+                    "name": "Small Instance",
+                    "displaytext": "Small Instance",
+                    "cpunumber": 1,
+                    "cpuspeed": 100,
+                    "memory": 256,
                 },
-                "service_offering": {
-	                "small": {
-	                        "name": "Small Instance",
-	                        "displaytext": "Small Instance",
-	                        "cpunumber": 1,
-	                        "cpuspeed": 100,
-	                        "memory": 256,
-		                },
-                },
-                "ostype": 'CentOS 5.3 (64-bit)',
+            },
+            "ostype": 'CentOS 5.3 (64-bit)',
         }
+
 
 class TestDeployVM(cloudstackTestCase):
     """Test deploy a VM into a user account
@@ -118,21 +135,24 @@ class TestDeployVM(cloudstackTestCase):
         self.apiclient = self.testClient.getApiClient()
 
         # Get Zone, Domain and Default Built-in template
-        domain = get_domain(self.apiclient, self.testdata)
-        zone = get_zone(self.apiclient, self.testdata)
-        self.testdata["mode"] = zone.networktype
-        template = get_template(self.apiclient, zone.id, self.testdata["ostype"])
+        self.domain = get_domain(self.apiclient, self.testdata)
+        self.zone = get_zone(self.apiclient, self.testdata)
+        self.testdata["mode"] = self.zone.networktype
+        self.template = get_template(self.apiclient, self.zone.id, self.testdata["ostype"])
 
+        #create a user account
         self.account = Account.create(
             self.apiclient,
             self.testdata["account"],
-            domainid=domain.id,
-            zoneid=zone.id
+            domainid=self.domain.id,
+            zoneid=self.zone.id
         )
+        #create a service offering
         self.service_offering = ServiceOffering.create(
             self.apiclient,
             self.testdata["service_offering"]["small"]
         )
+        #build cleanup list
         self.cleanup = [
             self.service_offering,
             self.account
@@ -151,42 +171,43 @@ class TestDeployVM(cloudstackTestCase):
             accountid=self.account.name,
             domainid=self.account.domainid,
             serviceofferingid=self.service_offering.id,
+            templateid=self.template.id,
             mode=self.services['mode']
         )
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
 
         self.debug(
-                "Verify listVirtualMachines response for virtual machine: %s" \
-                % self.virtual_machine.id
-            )
+            "Verify listVirtualMachines response for virtual machine: %s"\
+            % self.virtual_machine.id
+        )
 
         self.assertEqual(
-                            isinstance(list_vms, list),
-                            True,
-                            "List VM response was not a valid list"
-                        )
+            isinstance(list_vms, list),
+            True,
+            "List VM response was not a valid list"
+        )
         self.assertNotEqual(
-                            len(list_vms),
-                            0,
-                            "List VM response was empty"
-                        )
+            len(list_vms),
+            0,
+            "List VM response was empty"
+        )
 
         vm = list_vms[0]
         self.assertEqual(
-                            vm.id,
-                            self.virtual_machine.id,
-                            "Virtual Machine ids do not match"
-                        )
+            vm.id,
+            self.virtual_machine.id,
+            "Virtual Machine ids do not match"
+        )
         self.assertEqual(
-                    vm.name,
-                    self.virtual_machine.name,
-                    "Virtual Machine names do not match"
-                    )
+            vm.name,
+            self.virtual_machine.name,
+            "Virtual Machine names do not match"
+        )
         self.assertEqual(
             vm.state,
             "Running",
-             msg="VM is not in Running state"
+            msg="VM is not in Running state"
         )
 
     def tearDown(self):
