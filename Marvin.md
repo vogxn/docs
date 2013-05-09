@@ -34,9 +34,9 @@ $ pip install tools/marvin/dist/Marvin-0.1.0.tar.gz
 To upgrade an existing marvin installation and sync it with the latest APIs on the managemnet server, follow the steps [here](CheckInTests#Sync)
 
 ## First Things First
-You will need a CloudStack management server that is already deployed, configured and ready to accept API calls. You can pick any management server in your lab that has a few VMs running on it or you can use [DevCloud](DevCloud) or the simulator environment deployed for a [checkin test](CheckInTest). Create a sample json config file telling marvin where your management server and database server are. 
+You will need a CloudStack management server that is already deployed, configured and ready to accept API calls. You can pick any management server in your lab that has a few VMs running on it or you can use [DevCloud](DevCloud) or the simulator environment deployed for a [checkin test](CheckInTest). Create a sample json config file `demo.cfg` telling marvin where your management server and database server are. 
 
-The basic json config looks as shown below:
+The `demo.cfg` json config looks as shown below:
 
 ```json
 {
@@ -80,89 +80,140 @@ Without much ado, let us jump into test case writing. Following is a working sce
 * tearDown the user account - basically delete it to cleanup acquired resources
 
 ```python
-import marvin
-from marvin import cloudstackTestCase
 from marvin.cloudstackTestCase import *
+from marvin.cloudstackAPI import *
 
-class TestDeployVm(cloudstackTestCase):
-    """Test deploying a virtual machine into a user account
+from marvin.integration.lib.utils import *
+from marvin.integration.lib.base import *
+from marvin.integration.lib.common import *
+
+class TestData(object):
+    def __init__(self):
+       self.testdata = {
+                "account": {
+                    "email": "test@test.com",
+                    "firstname": "Test",
+                    "lastname": "User",
+                    "username": "test",
+                    "password": "password",
+                },
+                "service_offering": {
+	                "small": {
+	                        "name": "Small Instance",
+	                        "displaytext": "Small Instance",
+	                        "cpunumber": 1,
+	                        "cpuspeed": 100,
+	                        "memory": 256,
+		                },
+                },
+                "ostype": 'CentOS 5.3 (64-bit)',
+        }
+
+class TestDeployVM(cloudstackTestCase):
+    """Test deploy a VM into a user account
     """
+
     def setUp(self):
-        self.apiClient = self.testClient.getApiClient() #Get ourselves an API client
+        self.testdata = TestData().testdata
+        self.apiclient = self.testClient.getApiClient()
 
-        self.acct = createAccount.createAccountCmd() #The createAccount command
-        self.acct.accounttype = 0                    #We need a regular user. admins have accounttype=1
-        self.acct.firstname = 'bugs'
-        self.acct.lastname = 'bunny'
-        self.acct.password = 'password'
-        self.acct.username = 'bugs'
-        self.acct.email = 'bugs@rabbithole.com'
-        self.acct.account = 'bugs'
-        self.acct.domainid = 1                       #The default ROOT domain
-        self.acctResponse = self.apiClient.createAccount(self.acct)
-        # And upon successful creation we'll log a helpful message in our logs
-        # using the default debug logger of the test framework
-        self.debug("successfully created account: %s, user: %s, id: \
-                   %s"%(self.acctResponse.account, \
-                        self.acctResponse.username, \
-                        self.acctResponse.id))
+        # Get Zone, Domain and Default Built-in template
+        domain = get_domain(self.apiclient, self.testdata)
+        zone = get_zone(self.apiclient, self.testdata)
+        self.testdata["mode"] = zone.networktype
+        template = get_template(self.apiclient, zone.id, self.testdata["ostype"])
 
-    def test_DeployVm(self):
+        self.account = Account.create(
+            self.apiclient,
+            self.testdata["account"],
+            domainid=domain.id,
+            zoneid=zone.id
+        )
+        self.service_offering = ServiceOffering.create(
+            self.apiclient,
+            self.testdata["service_offering"]["small"]
+        )
+        self.cleanup = [
+            self.service_offering,
+            self.account
+        ]
+
+    def test_deploy_vm(self):
+        """Test Deploy Virtual Machine
+
+        # Validate the following:
+        # 1. Virtual Machine is accessible via SSH
+        # 2. listVirtualMachines returns accurate information
         """
-        Let's start by defining the attributes of our VM that we will be
-        deploying on CloudStack. We will be assuming a single zone is available
-        and is configured and all templates are Ready
+        self.virtual_machine = VirtualMachine.create(
+            self.apiclient,
+            self.services["small"],
+            accountid=self.account.name,
+            domainid=self.account.domainid,
+            serviceofferingid=self.service_offering.id,
+            mode=self.services['mode']
+        )
 
-        The hardcoded values are used only for brevity.
-        """
-        deployVmCmd = deployVirtualMachine.deployVirtualMachineCmd()
-        deployVmCmd.zoneid = 1
-        deployVmCmd.account = self.acct.account
-        deployVmCmd.domainid = self.acct.domainid
-        deployVmCmd.templateid = 5                   #For default template- CentOS 5.6(64 bit)
-        deployVmCmd.serviceofferingid = 1
+        list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
 
-        deployVmResponse = self.apiClient.deployVirtualMachine(deployVmCmd)
-        self.debug("VM %s was deployed in the job %s"%(deployVmResponse.id, deployVmResponse.jobid))
+        self.debug(
+                "Verify listVirtualMachines response for virtual machine: %s" \
+                % self.virtual_machine.id
+            )
 
-        # At this point our VM is expected to be Running. Let's find out what
-        # listVirtualMachines tells us about VMs in this account
+        self.assertEqual(
+                            isinstance(list_vms, list),
+                            True,
+                            "List VM response was not a valid list"
+                        )
+        self.assertNotEqual(
+                            len(list_vms),
+                            0,
+                            "List VM response was empty"
+                        )
 
-        listVmCmd = listVirtualMachines.listVirtualMachinesCmd()
-        listVmCmd.id = deployVmResponse.id
-        listVmResponse = self.apiClient.listVirtualMachines(listVmCmd)
+        vm = list_vms[0]
+        self.assertEqual(
+                            vm.id,
+                            self.virtual_machine.id,
+                            "Virtual Machine ids do not match"
+                        )
+        self.assertEqual(
+                    vm.name,
+                    self.virtual_machine.name,
+                    "Virtual Machine names do not match"
+                    )
+        self.assertEqual(
+            vm.state,
+            "Running",
+             msg="VM is not in Running state"
+        )
 
-        self.assertNotEqual(len(listVmResponse), 0, "Check if the list API \
-                            returns a non-empty response")
-
-        vm = listVmResponse[0]
-
-        self.assertEqual(vm.id, deployVmResponse.id, "Check if the VM returned \
-                         is the same as the one we deployed")
-
-
-        self.assertEqual(vm.state, "Running", "Check if VM has reached \
-                         a state of running")
-
-    def tearDown(self):                               # Teardown will delete the Account as well as the VM once the VM reaches "Running" state
-        """
-        And finally let us cleanup the resources we created by deleting the
-        account. All good unittests are atomic and rerunnable this way
-        """
-        deleteAcct = deleteAccount.deleteAccountCmd()
-        deleteAcct.id = self.acctResponse.account.id
-        self.apiClient.deleteAccount(deleteAcct)
+    def tearDown(self):
+        try:
+            cleanup_resources(self.apiclient, self.cleanup)
+        except Exception as e:
+            self.debug("Warning! Exception in tearDown: %s" % e)
 ```
 
 ## Running the test
 
 ### IDE - Eclipse and PyDev
-To run the test we have written we will place our class file into our demo directory. The test framework will "discover" the tests inside any directory it is pointed to and run the tests against the specified deployment. Our configuration file `demo.cfg` is also in the same directory
+In PyDev you will have to setup the default test runner to be nose. For this:
+- goto Window->Preferences->PyDev
+- PyUnit - set the testrunner to nosetests
+- In the options window specify the following
+  * --with-marvin
+  * --marvin-config=/path/to/demo.cfg
+  * --load
+- Save/Apply
 
+Create a new python module `test_deploy_vm` of type unittest, copy the above test class and save the file. Running debug will now run the test case using the nosetests runner. You will also be able to set breakpoints, inspect values, evaluate expressions while debugging like you do with Java code in Eclipse.
+
+### CLI - bash run with nosetests 
 ```bash
-tsp@cloud:~/cloudstack# python -m marvin.deployAndRun -c demo/demo.cfg -t /tmp/testcase.log -r /tmp/results.log -f demo/TestDeployVm.py -l
+tsp@cloud:~/cloudstack# nosetests --with-marvin --marvin-config=demo.cfg --load test_deploy_vm.py
 
-root@cloud:~/cloudstack-oss# cat /tmp/results.log
 test_DeployVm (testDeployVM.TestDeployVm) ... ok
 ----------------------------------------------------------------------
 Ran 1 test in 100.511s
@@ -170,8 +221,6 @@ OK
 ```
 
 Congratulations, your test has passed!
-
-### CLI - bash run with nosetests 
 
 ## Advanced test case
 
@@ -189,124 +238,9 @@ Both should match for our test to be deemed : PASS
 > NOTE: This test has been written for the >3.0 CloudStack. On 2.2 versions we do not explicitly create a firewall rule.
 
 ```python
-import marvin
-from marvin import cloudstackTestCase
-from marvin.cloudstackTestCase import *
-from marvin.remoteSSHClient import remoteSSHClient
-
-class TestSshDeployVm(cloudstackTestCase):
-    """Test deploy VM and login to check for hostname
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        acctName = 'bugs-'+''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(6)) #randomly generated account
-
-        cls.apiClient = super(TestSshDeployVm, cls).getClsTestClient().getApiClient()
-        cls.acct = createAccount.createAccountCmd() #The createAccount command
-        cls.acct.accounttype = 0                    #We need a regular user. admins have accounttype=1
-        cls.acct.firstname = 'bugs'
-        cls.acct.lastname = 'bunny'                 #What's up doc?
-        cls.acct.password = mdf_pass                #The md5 hashed password string
-        cls.acct.username = acctName
-        cls.acct.email = 'bugs@rabbithole.com'
-        cls.acct.account = acctName
-        cls.acct.domainid = 1                       #The default ROOT domain
-        cls.acctResponse = cls.apiClient.createAccount(cls.acct)
-
-    def setUpNAT(self, virtualmachineid):
-        listSourceNat = listPublicIpAddresses.listPublicIpAddressesCmd()
-        listSourceNat.account = self.acct.account
-        listSourceNat.domainid = self.acct.domainid
-        listSourceNat.issourcenat = True
-
-        listsnatresponse = self.apiClient.listPublicIpAddresses(listSourceNat)
-        self.assertNotEqual(len(listsnatresponse), 0, "Found a source NAT for the acct %s"%self.acct.account)
-
-        snatid = listsnatresponse[0].id
-        snatip = listsnatresponse[0].ipaddress
-
-        try:
-            createFwRule = createFirewallRule.createFirewallRuleCmd()
-            createFwRule.cidrlist = "0.0.0.0/0"
-            createFwRule.startport = 22
-            createFwRule.endport = 22
-            createFwRule.ipaddressid = snatid
-            createFwRule.protocol = "tcp"
-            createfwresponse = self.apiClient.createFirewallRule(createFwRule)
-
-            createPfRule = createPortForwardingRule.createPortForwardingRuleCmd()
-            createPfRule.privateport = 22
-            createPfRule.publicport = 22
-            createPfRule.virtualmachineid = virtualmachineid
-            createPfRule.ipaddressid = snatid
-            createPfRule.protocol = "tcp"
-
-            createpfresponse = self.apiClient.createPortForwardingRule(createPfRule)
-        except e:
-            self.debug("Failed to create PF rule in account %s due to %s"%(self.acct.account, e))
-            raise e
-        finally:
-            return snatip
-
-    def test_SshDeployVm(self):
-        """
-        Let's start by defining the attributes of our VM that we will be
-        deploying on CloudStack. We will be assuming a single zone is available
-        and is configured and all templates are Ready
-
-        The hardcoded values are used only for brevity.
-        """
-        deployVmCmd = deployVirtualMachine.deployVirtualMachineCmd()
-        deployVmCmd.zoneid = 1
-        deployVmCmd.account = self.acct.account
-        deployVmCmd.domainid = self.acct.domainid
-        deployVmCmd.templateid = 5 #CentOS 5.6 builtin
-        deployVmCmd.serviceofferingid = 1
-
-        deployVmResponse = self.apiClient.deployVirtualMachine(deployVmCmd)
-        self.debug("VM %s was deployed in the job %s"%(deployVmResponse.id, deployVmResponse.jobid))
-
-        # At this point our VM is expected to be Running. Let's find out what
-        # listVirtualMachines tells us about VMs in this account
-
-        listVmCmd = listVirtualMachines.listVirtualMachinesCmd()
-        listVmCmd.id = deployVmResponse.id
-        listVmResponse = self.apiClient.listVirtualMachines(listVmCmd)
-
-        self.assertNotEqual(len(listVmResponse), 0, "Check if the list API \
-                            returns a non-empty response")
-
-        vm = listVmResponse[0]
-        hostname = vm.name
-        nattedip = self.setUpNAT(vm.id)
-
-        self.assertEqual(vm.id, deployVmResponse.id, "Check if the VM returned \
-                         is the same as the one we deployed")
-
-
-        self.assertEqual(vm.state, "Running", "Check if VM has reached \
-                         a state of running")
-
-        # SSH login and compare hostname
-        ssh_client = remoteSSHClient(nattedip, 22, "root", "password")
-        stdout = ssh_client.execute("hostname")
-
-        self.assertEqual(hostname, stdout[0], "cloudstack VM name and hostname match")
-
-
-    @classmethod
-    def tearDownClass(cls):
-        """
-        And finally let us cleanup the resources we created by deleting the
-        account. All good unittests are atomic and rerunnable this way
-        """
-        deleteAcct = deleteAccount.deleteAccountCmd()
-        deleteAcct.id = cls.acctResponse.account.id
-        cls.apiClient.deleteAccount(deleteAcct)
 ```
 
-Observe that unlike the previous test class - `TestDeployVM` \- we do not have methods `setUp` and `tearDown`. Instead, we have the methods `setUpClass` and `tearDownClass`. We do not want the initialization (and cleanup) code in setup (and teardown) to run after every test in the suite which is what `setUp` and `tearDown` will do. Instead we will have the initialization code (creation of account etc) done once for the entire lifetime of the class. This is accomplished using the `setUpClass` and `tearDownClass` classmethods. Since the API client is only visible to instances of `cloudstackTestCase` we expose the API client at the class level using the `getClsTestClient()` method. So to get the API client we call the parent class (super(`TestSshDeployVm`, cls)) ie `cloudstackTestCase` and ask for a class level API client.
+Observe that unlike the previous test class - `TestDeployVM` - we do not have methods `setUp` and `tearDown`. Instead, we have the methods `setUpClass` and `tearDownClass`. We do not want the initialization (and cleanup) code in setup (and teardown) to run after every test in the suite which is what `setUp` and `tearDown` will do. Instead we will have the initialization code (creation of account etc) done once for the entire lifetime of the class. This is accomplished using the `setUpClass` and `tearDownClass` classmethods. Since the API client is only visible to instances of `cloudstackTestCase` we expose the API client at the class level using the `getClsTestClient()` method. So to get the API client we call the parent class (super(`TestSshDeployVm`, cls)) ie `cloudstackTestCase` and ask for a class level API client.
 
 ## Test Pattern
 
