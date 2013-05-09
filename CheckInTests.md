@@ -1,6 +1,6 @@
 # Check-In tests for Apache CloudStack
 
-The agent [simulator][1] and [marvin][2] are integrated into maven build phases to help you run basic tests before pushing a commit. These tests are _integration tests_ that will test the CloudStack system as a whole. Management Server will be running during the tests with the Simulator Agent responding to hypervisor commands. For running the checkin tests, your developer environment needs to have [Marvin][2] installed and working with the latest CloudStack APIs. These tests are lightweight and should ensure that your commit doesnt break critical functionality for others working with the master branch.
+The agent [simulator](1) and [marvin](2) are integrated into maven build phases to help you run basic tests before pushing a commit. These tests are _integration tests_ that will test the CloudStack system as a whole. Management Server will be running during the tests with the Simulator Agent responding to hypervisor commands. For running the checkin tests, your developer environment needs to have [Marvin](2) installed and working with the latest CloudStack APIs. These tests are lightweight and should ensure that your commit doesnt break critical functionality for others working with the master branch.
 
 ## Prerequisites and Setup
 
@@ -16,9 +16,9 @@ If you have come to this wiki you should have the cloudstack code cloned to your
 
 All the tests require Python 2.7 to be installed. If you have multiple pythons ensure that python2.7 is the default python selected when you type python in the shell prompt. If not - alias the `python2.7` binary in `/usr/local/bin` to `python`. 
 
-If python 2.7 is not available on your machine or you have an old python - you will need to get python from the [python][3] website. Compiling from source is the easiest way to do this. Some old RHEL/CentOS machines have python 2.6 installed and installing python 2.7 can overwrite your yum installation. To overcome this - use the [make altinstall][4] option.
+If python 2.7 is not available on your machine or you have an old python - you will need to get python from the [python](3) website. Compiling from source is the easiest way to do this. Some old RHEL/CentOS machines have python 2.6 installed and installing python 2.7 can overwrite your yum installation. To overcome this - use the [make altinstall](4) option.
 
-pip is a package manager for python but is not installed with python installation. To install pip you will need [setuptools][5] for your platform. Once setup tools is installed you can install pip as shown here:
+pip is a package manager for python but is not installed with python installation. To install pip you will need [setuptools](5) for your platform. Once setup tools is installed you can install pip as shown here:
 
 ```bash
 $ easy_install pip
@@ -48,12 +48,12 @@ $ brew install python
 Windows python installation is easier since binary packages are simpler to click and install.
 
 #### non-Cygwin
-If you are not using cygwin download the python installer for Python 2.7 and run it from the [python downloads page][6]. Then install [pip][7] from binaries for python 2.7.
+If you are not using cygwin download the python installer for Python 2.7 and run it from the [python downloads page](6). Then install [pip](7) from binaries for python 2.7.
 
 #### Cygwin
 Run the Cygwin setup.exe executable. On the dialog boxes under the Python section you should see the latest python 2.7 interpreter. Install it. If you have an older python already installed in Cygwin make sure to uninstall that before upgrading to 2.7. Set your environment variables to point `python` to the new `python 2.7` installed python on your cygdrive. Try alternate mirrors if you find python 2.7 is not available on your default mirror.
 
-To install pip the package manager you will have to install [setuptools][8] for cygwin and then do:
+To install pip the package manager you will have to install [setuptools](8) for cygwin and then do:
 
 ```bash
 $ easy_install pip
