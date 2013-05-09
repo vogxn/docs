@@ -6,17 +6,17 @@
 Marvin requires Python 2.6 for installation but the tests written using marvin utilize Python 2.7 to the fullest. You should follow the test environment setup instructions [here](TestEnvironmentSetup) before proceeding further.
 
 ### Dependencies
-Marvin dependencies are installed automatically by the installer 
-    ** python-paramiko - remote ssh access, ssh-agent 
-    ** mysql-connector-python - db connectivity 
-    ** nose - test runner, plugins
-    ** marvin-nose - marvin plugin for nose
-    ** should_dsl - should assertions dsl-style
+* Marvin dependencies are installed automatically by the installer 
+    * python-paramiko - remote ssh access, ssh-agent 
+    * mysql-connector-python - db connectivity 
+    * nose - test runner, plugins
+    * marvin-nose - marvin plugin for nose
+    * should_dsl - should assertions dsl-style
 
 ### Windows specifics
-For Windows (non-cygwin) development environment, following additional steps are needed to be able to install Marvin:
-    ** The mysql-connector-python for Windows can be found [here](http://dev.mysql.com/downloads/connector/python/)
-    ** pycrypto binaries are required since Windows does not have gcc/glibc. Download [here](http://www.voidspace.org.uk/python/modules.shtml#pycrypto)
+* For Windows (non-cygwin) development environment, following additional steps are needed to be able to install Marvin:
+    * The mysql-connector-python for Windows can be found [here](http://dev.mysql.com/downloads/connector/python/)
+    * pycrypto binaries are required since Windows does not have gcc/glibc. Download [here](http://www.voidspace.org.uk/python/modules.shtml#pycrypto)
 
 ### Compiling and Packaging
 The `developer` profile compiles and packages Marvin. It does *NOT* install marvin your default PYTHONPATH.
@@ -157,7 +157,7 @@ class TestDeployVm(cloudstackTestCase):
 ## Running the test
 
 ### IDE - Eclipse and PyDev
-To run the test we have written we will place our class file into our demo directory. The test framework will "discover" the tests inside any directory it is pointed to and run the tests against the specified deployment. Our configuration file {{'demo.cfg'}} is also in the same directory
+To run the test we have written we will place our class file into our demo directory. The test framework will "discover" the tests inside any directory it is pointed to and run the tests against the specified deployment. Our configuration file `demo.cfg` is also in the same directory
 
 ```bash
 tsp@cloud:~/cloudstack# python -m marvin.deployAndRun -c demo/demo.cfg -t /tmp/testcase.log -r /tmp/results.log -f demo/TestDeployVm.py -l
@@ -306,7 +306,7 @@ class TestSshDeployVm(cloudstackTestCase):
         cls.apiClient.deleteAccount(deleteAcct)
 ```
 
-Observe that unlike the previous test class - {{TestDeployVM}} \- we do not have methods {{setUp}} and {{tearDown}}. Instead, we have the methods {{setUpClass}} and {{tearDownClass}}. We do not want the initialization (and cleanup) code in setup (and teardown) to run after every test in the suite which is what {{setUp}} and {{tearDown}} will do. Instead we will have the initialization code (creation of account etc) done once for the entire lifetime of the class. This is accomplished using the {{setUpClass}} and {{tearDownClass}} classmethods. Since the API client is only visible to instances of {{cloudstackTestCase}} we expose the API client at the class level using the {{getClsTestClient()}} method. So to get the API client we call the parent class (super({{TestSshDeployVm}}, cls)) ie {{cloudstackTestCase}} and ask for a class level API client.
+Observe that unlike the previous test class - `TestDeployVM` \- we do not have methods `setUp` and `tearDown`. Instead, we have the methods `setUpClass` and `tearDownClass`. We do not want the initialization (and cleanup) code in setup (and teardown) to run after every test in the suite which is what `setUp` and `tearDown` will do. Instead we will have the initialization code (creation of account etc) done once for the entire lifetime of the class. This is accomplished using the `setUpClass` and `tearDownClass` classmethods. Since the API client is only visible to instances of `cloudstackTestCase` we expose the API client at the class level using the `getClsTestClient()` method. So to get the API client we call the parent class (super(`TestSshDeployVm`, cls)) ie `cloudstackTestCase` and ask for a class level API client.
 
 ## Test Pattern
 
@@ -326,7 +326,7 @@ If the decorator is not suitable for you, for instance, you have to make some AP
 
 ## Debugging & Logging
 
-The logs from the test client detailing the requests sent by it and the responses fetched back from the management server can be found under {{/tmp/testclient.log}}. By default all logging is in {{INFO}} mode. In addition, you may provide your own set of {{DEBUG}} log messages in tests you write. Each {{cloudstackTestCase}} inherits the debug logger and can be used to output useful messages that can help troubleshooting the testcase when it is running.
+The logs from the test client detailing the requests sent by it and the responses fetched back from the management server can be found under `/tmp/testclient.log`. By default all logging is in `INFO` mode. In addition, you may provide your own set of `DEBUG` log messages in tests you write. Each `cloudstackTestCase` inherits the debug logger and can be used to output useful messages that can help troubleshooting the testcase when it is running.
 
 eg:
 ```python
