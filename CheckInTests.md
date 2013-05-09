@@ -34,7 +34,8 @@ Note: python-pip package would have been packaged for the default python install
 For those with multiple python enviornments make sure to alias pip-2.7 to pip so that the packages go to the python2.7 package directories and not python 2.6/2.4 as the case may be. To see which python the default pip is pointing to:
 
 ```bash
-$ pip --version                                                                                                                                            tsp@cloud-pip 1.2.1 from /Library/Python/2.7/site-packages/pip-1.2.1-py2.7.egg (python 2.7)
+$ pip --version
+pip 1.2.1 from /Library/Python/2.7/site-packages/pip-1.2.1-py2.7.egg (python 2.7)
 ```
 
 Mac OSX users who have homebrew can simply install python using brew. This will also install the right pip version for you:
