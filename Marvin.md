@@ -71,13 +71,19 @@ The `demo.cfg` json config looks as shown below:
 > * Change the global setting `integration.api.port` on the CloudStack GUI to `8096` and restart the management server
 
 ## Writing the test
-Without much ado, let us jump into test case writing. Following is a working scenario we will test using Marvin:
+Without much ado, let us jump into test case writing. Following is a working scenario we will test using Marvin.
+
+> You are encouraged to write your tests in a Pydev+Eclipse environment as this
+> features auto-completion for the test that follows. We will explain how to
+> run the tests in eclipse later.
 
 * create a testcase class
 * setUp a user account - name: user, passwd: password
 * deploy a VM into that user account using the default small service offering and CentOS template
 * verify that the VM we deployed reached the "Running" state
 * tearDown the user account - basically delete it to cleanup acquired resources
+
+Here is our test_deploy_vm.py module:
 
 ```python
 #All tests inherit from cloudstackTestCase
@@ -232,11 +238,11 @@ Although test data is at the top of our test class, it is only identified as and
 #### TestDeployVM
 - TestDeployVM is our test class that holds the suite of tests we want to perform. All test classes start with Capital caseing and the `Test` prefix. Ideally only one test class is contained in every module
 - The comment in triple quotes is used to describe the scenario being tested.
-- setUp() - the setup method is run before every test method in the class and is used to initialize any common data, clients, resources required in our tests. In our case we have initialized our testclients - apiclient and dbclient identified the zone, domain and template we will need for the VM and created the user account into which the VM shall be deployed into.
-- self.cleanup =[]. The cleanup list contains the list of objects which should be destroyed at the end of our test run in the tearDown method
-- tearDown() - the teardown method simply calls the cleanup (delete) associated with every resource thereby garbage collecting resources of the test
-- test_deploy_vm - our test scenario. All methods must begin with the test_ prefix 
-    - VirtualMachine.creat( -> this is the deployVirtualMachineCmd
+- `setUp()` - the setup method is run before every test method in the class and is used to initialize any common data, clients, resources required in our tests. In our case we have initialized our testclients - apiclient and dbclient identified the zone, domain and template we will need for the VM and created the user account into which the VM shall be deployed into.
+- `self.cleanup =[]`. The cleanup list contains the list of objects which should be destroyed at the end of our test run in the tearDown method
+- `tearDown()` - the teardown method simply calls the cleanup (delete) associated with every resource thereby garbage collecting resources of the test
+- `test_deploy_vm` - our test scenario. All methods must begin with the `test_` prefix 
+    - VirtualMachine.creat( -> this is the deployVirtualMachineCmd)
     - triple quote comments talk about the scenario in detail
     - Multiple asserts are made with appropriate failure messages
     - Read up about asserts [here](http://wiki.python.org/moin/UsingAssertionsEffectively)
@@ -254,43 +260,27 @@ In PyDev you will have to setup the default test runner to be nose. For this:
   * --load
 - Save/Apply
 
-Create a new python module `test_deploy_vm` of type unittest, copy the above test class and save the file. Running debug will now run the test case using the nosetests runner. You will also be able to set breakpoints, inspect values, evaluate expressions while debugging like you do with Java code in Eclipse.
+Now create a Debug Configuration with the project set the one in which you are writing your tests. And the main module to be your `test_deploy_vm.py` script we defined earlier. Hit Debug and you should see your test run within the Eclipse environment and report failures in the _Debug Window_. You will also be able to set breakpoints, inspect values, evaluate expressions while debugging like you do with Java code in Eclipse.
 
-### CLI - bash run with nosetests 
+### CLI - shell run
+Create a new python module `test_deploy_vm` of type unittest, copy the above test class and save the file using your favorite editor. On your shell environment you can run the tests as follows:
+
 ```bash
 tsp@cloud:~/cloudstack# nosetests --with-marvin --marvin-config=demo.cfg --load test_deploy_vm.py
+Test Deploy Virtual Machine ... ok
 
-test_DeployVm (testDeployVM.TestDeployVm) ... ok
 ----------------------------------------------------------------------
-Ran 1 test in 100.511s
+Ran 1 test in 10.396s
+
 OK
 ```
-
 Congratulations, your test has passed!
 
-## Advanced test case
-
-We do not know for sure that the CentOS VM deployed earlier actually started up on the hypervisor host. The API tells us it did - so Cloudstack assumes the VM is up and running, but did the hypervisor successfully spin up the VM? In this example we will login to the CentOS VM that we deployed earlier using a simple ssh client that is exposed by the test framework. The example assumes that you have an Advanced Zone deployment of Cloudstack running. The test case is further simplified if you have a Basic Zone deployment. It is left as an exercise to the reader to refactor the following test to work for a basic zone.
-
-Let's get started. We will take the earlier test as is and extend it as follows:
-
-* Creating a NAT (PortForwarding) rule that allows ssh (port 22) traffic
-* Open up the firewall to allow all SSH traffic to the account's VMs
-* Add the deployed VM returned in our previous test to this port forward rule
-* ssh to the NAT-ed IP using our ssh-client and get the hostname of the VM
-* Compare the hostname of the VM and the name of the VM deployed by CloudStack.
-Both should match for our test to be deemed : PASS
-
-> NOTE: This test has been written for the >3.0 CloudStack. On 2.2 versions we do not explicitly create a firewall rule.
-
-```python
-```
-
-Observe that unlike the previous test class - `TestDeployVM` - we do not have methods `setUp` and `tearDown`. Instead, we have the methods `setUpClass` and `tearDownClass`. We do not want the initialization (and cleanup) code in setup (and teardown) to run after every test in the suite which is what `setUp` and `tearDown` will do. Instead we will have the initialization code (creation of account etc) done once for the entire lifetime of the class. This is accomplished using the `setUpClass` and `tearDownClass` classmethods. Since the API client is only visible to instances of `cloudstackTestCase` we expose the API client at the class level using the `getClsTestClient()` method. So to get the API client we call the parent class (super(`TestSshDeployVm`, cls)) ie `cloudstackTestCase` and ask for a class level API client.
+Running from the CLI you can also experiment with the various plugins provided by Nose described in a later section.
 
 ## Test Pattern
 
-An astute reader would by now have found that the following pattern has been used in the test examples shown so far:
+An astute reader would by now have found that the following pattern has been used in the test examples shown so far and in most of the suites in the `test/integration` directory:
 
 * creation of an account
 * deploying Vms, running some test scenario
@@ -298,23 +288,52 @@ An astute reader would by now have found that the following pattern has been use
 
 This pattern is useful to contain the entire test into one atomic piece. It helps prevent tests from becoming entangled in each other ie we have failures localized to one account and that should not affect the other tests.  Advanced examples in our basic verification suite are written using this pattern. Those writing tests are encouraged to follow the examples in `test/integration/smoke` directory. 
 
+## Advanced test cases
+
+Many more advanced tests have been written in the `test/integration/` directory of the codebase. Suites are available for many features in cloudstack. You should explore these tests for reference.
+
+### setUpClass, tearDownClass
+Sometimes it is not favourable for tests do have setUp and teardown run after each test. You want the setup to run only once per module and remain commonly available for all tests in the suite. In such cases you will use the `@classmethod` `setUpClass` defined by python unittest (since 2.7)
+
+for eg:
+```python
+class TestDeployVM(cloudstackTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.apiclient = super(TestDeployVM, cls).getClsTestClient().getApiClient()
+```
+
+Note that the testclient is available from the superclass using getClsTestClient in this case.
+
+## Existing Tests - Smoke and Component
+
+Tests with more backend verification and complete integration of suites for network, snapshots, templates etc can be found in the `test/integration/smoke` and `test/integration/component`. Almost all of these test suites use common library wrappers written around the test framework to simplify writing tests. These libraries are part of the `marvin.integration` package. Ensure that you have gone through the existing tests related to your feature before writing your own. 
+
+The integration library takes advantage of the fact that every resource - VirtualMachine, ISO, Template, PublicIp etc follows the pattern of
+* create - where we cause creation of the resource eg: deployVirtualMachine
+* delete - where we delete our resource eg: deleteVolume
+* list - where we look for some state of the resource eg: listPods
+
+Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
+
+### Smoke 
+This is our so-called _BVT_ - basic verification tests. Tests here include those that check the basic sanity of the cloudstack features. Include only simple tests for your feature here. If you are writing a check-in test, this the where the test module should be put.
+
+### Component
+More in-depth tests drilling down the entire breadth of a feature can be found here. These are used for regression testing.
+
 ## User Tests
 
 The test framework by default runs all its tests under 'admin' mode which means you have admin access and visibility to resources in cloudstack. In order to run the tests as a regular user/domain-admin - you can apply the @user decorator which takes the arguments (account, domain, accounttype) at the head of your test class. The decorator will create the account and domain if they do not exist. 
 
-If the decorator is not suitable for you, for instance, you have to make some API calls as an admin and others as a user you can get two apiClients in your test. One for the admin accessiblity operations and another for user access only. `getUserApiClient()`
+If the decorator is not suitable for you, for instance, you have to make some API calls as an admin and others as a user you can get two apiClients in your test. One for the admin accessiblity operations and another for user access only. The `getUserApiClient()` can be used to obtain a user apiclient instead of the default admin `getApiClient()`
 
-## Debugging & Logging
+## Logging
 
 The logs from the test client detailing the requests sent by it and the responses fetched back from the management server can be found under `/tmp/testclient.log`. By default all logging is in `INFO` mode. In addition, you may provide your own set of `DEBUG` log messages in tests you write. Each `cloudstackTestCase` inherits the debug logger and can be used to output useful messages that can help troubleshooting the testcase when it is running.
 
-eg:
-```python
-list_zones_response = self.apiclient.listZones(listzonesample)
-self.debug("Number of zones: %s" % len(list_zones_response)) #This shows us how many zones were found in the deployment
-```
-
-While debugging with the PyDev plugin you can also place breakpoints in Eclipse for a more interactive debugging session.
+nosetests will capture all the logs from running a single test and show them as part of a failure. This allows isolating the sequence of calls made that caused the failure of the test. Successful tests do not show any logs.
 
 ## Marvin Deployment Configurations 
 
@@ -578,7 +597,7 @@ Plugin pdb
 Plugin marvin
 ```
 
-### Usage and running tests
+### Marvin plugin
 ```bash
 $ nosetests --with-marvin --marvin-config=/path/to/basic_zone.cfg --load /path/to/tests
 ```
@@ -595,6 +614,10 @@ The smoke tests and component tests contain attributes that can be used to filte
 * devcloud - tests that will run only for the basic zone on a devcloud setup done using tools/devcloud/devcloud.cfg
 * speed = 0/1/2 (greater the value lesser the speed)
 * multihost/multipods/mulitcluster (test requires multiple set of hosts/pods/clusters)
+
+```bash
+$ nosetests --with-marvin --marvin-config=/path/to/config.cfg -w test_directory -a tags=advanced,tags=simulator # run tests tagged to run on an advanced zone with the simulator
+```
 
 ### Running Devcloud Tests
 
@@ -631,17 +654,6 @@ def test_deploy_virtualmachine(self):
     """Tests deployment of VirtualMachine
     """
 ```
-
-## Existing Tests - Smoke and Component
-
-Tests with more backend verification and complete integration of suites for network, snapshots, templates etc can be found in the `test/integration/smoke` and `test/integration/component`. Almost all of these test suites use common library wrappers written around the test framework to simplify writing tests. These libraries are part of the `marvin.integration` package. Ensure that you have gone through the existing tests related to your feature before writing your own. 
-
-The integration library takes advantage of the fact that every resource - VirtualMachine, ISO, Template, PublicIp etc follows the pattern of
-* create - where we cause creation of the resource eg: deployVirtualMachine
-* delete - where we delete our resource eg: deleteVolume
-* list - where we look for some state of the resource eg: listPods
-
-Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
 
 ## Guidelines to choose scenarios for integration
 
