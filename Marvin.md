@@ -144,8 +144,7 @@ class TestDeployVM(cloudstackTestCase):
         self.account = Account.create(
             self.apiclient,
             self.testdata["account"],
-            domainid=self.domain.id,
-            zoneid=self.zone.id
+            domainid=self.domain.id
         )
         #create a service offering
         self.service_offering = ServiceOffering.create(
@@ -167,12 +166,12 @@ class TestDeployVM(cloudstackTestCase):
         """
         self.virtual_machine = VirtualMachine.create(
             self.apiclient,
-            self.services["small"],
+            self.testdata["virtual_machine"],
             accountid=self.account.name,
+            zoneid=self.zone.id,
             domainid=self.account.domainid,
             serviceofferingid=self.service_offering.id,
-            templateid=self.template.id,
-            mode=self.services['mode']
+            templateid=self.template.id
         )
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
@@ -216,6 +215,32 @@ class TestDeployVM(cloudstackTestCase):
         except Exception as e:
             self.debug("Warning! Exception in tearDown: %s" % e)
 ```
+
+## Parts of the test
+
+#### imports
+- cloudstackTestCase - All the cloudstack marvin tests inherit from this class. The class provides the tests with apiclient and dbclients using which calls can be made to the API server. dbclient is useful for verifying database values using SQL
+- integration.lib.base - the base module contains all the resources one can manipulate in cloudstack. eg: VirtualMachine, Account, Zone, VPC, etc. Each resource defines a set of operations. For eg: VirtualMachine.deploy, VirtualMachine.destroy, VirtualMachine.list, etc. Each operation makes an API call: For eg: VirtualMachine.recover -> recoverVirtualMachineCmd returning a recoverVirtualMachineResponse. When dealing with the tests one only has to identify the set of resources one will be using and all the operations will autocomplete if you are using an IDE like PyDev/PyCharm
+- integration.lib.utils - utility classes for performing verification/actions outside the API. Eg. ssh utilities, random_string generator, cleanup etc.
+- integration.lib.common - simple methods that are commonly required for most of the tests, eg: a template -get_template, a zone-get_zone, etc
+
+#### TestData
+The test data class carries information in a dictionary object. (_key_, _value_) pairs in this class are needed to be externally supplied to satisfy an API call. For eg: In order to create a VM one needs to give a displayname and the vm name. These are externally supplied data. It is not mandatory to use the testdata class to supply to your test. In all cases you can simply send the right arguments to the `Resource.operation(` method of your resource without using testdata dictionaries. The advantage of testdata is keeping all data to be configurable in a single place.
+
+Although test data is at the top of our test class, it is only identified as and when we start writing our test. In our case we have identified that we need an `account` (firstname,lastname etc), a `virtual_machine` (with name and displayname) and a `service_offering` (with cpu: 128 and some memory) as test data.
+
+#### TestDeployVM
+- TestDeployVM is our test class that holds the suite of tests we want to perform. All test classes start with Capital caseing and the `Test` prefix. Ideally only one test class is contained in every module
+- The comment in triple quotes is used to describe the scenario being tested.
+- setUp() - the setup method is run before every test method in the class and is used to initialize any common data, clients, resources required in our tests. In our case we have initialized our testclients - apiclient and dbclient identified the zone, domain and template we will need for the VM and created the user account into which the VM shall be deployed into.
+- self.cleanup =[]. The cleanup list contains the list of objects which should be destroyed at the end of our test run in the tearDown method
+- tearDown() - the teardown method simply calls the cleanup (delete) associated with every resource thereby garbage collecting resources of the test
+- test_deploy_vm - our test scenario. All methods must begin with the test_ prefix 
+    - VirtualMachine.creat( -> this is the deployVirtualMachineCmd
+    - triple quote comments talk about the scenario in detail
+    - Multiple asserts are made with appropriate failure messages
+    - Read up about asserts [here](http://wiki.python.org/moin/UsingAssertionsEffectively)
+    - You can also use the [should_dsl](http://pythonhosted.org/should_dsl/) to do asserts as it is included with the Marvin install and is more readable
 
 ## Running the test
 
