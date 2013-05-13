@@ -317,6 +317,20 @@ The integration library takes advantage of the fact that every resource - Virtua
 
 > Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
 
+#### Checkin Tests
+
+These are tests that can be run if you have a development environment of CloudStack. Light-Weight tests such as these can be run using the simulator as the hypervisor. The run time for tests is short and you should ensure that you have run them before making a commit that could potentially break basic functionality. Instructions for setting up and running these tests is explained [here](CheckInTests)
+
+Check-In tests are the same as any other tests written using Marvin. The only additional step you need to do is ensure that your test is driven entirely by the API only. This makes it possible to run the test on a simulator. Once you have your test, you need to tag it to run on the simulator so the marvin test runner can pick it up during the checkin-test run. Then place your test module in the `test/integration/smoke` folder and it will become part of the checkin test run.
+
+For eg:
+```python
+@attr(tags =["simulator", "advanced", "smoke"])
+def test_deploy_virtualmachine(self):
+    """Tests deployment of VirtualMachine
+    """
+```
+
 #### Smoke 
 This is our so-called _BVT_ - basic verification tests. Tests here include those that check the basic sanity of the cloudstack features. Include only simple tests for your feature here. If you are writing a check-in test, this the where the test module should be put.
 
@@ -639,20 +653,6 @@ Test destroy(expunge) Virtual Machine ... ok
 Ran 7 tests in 10.001s
 
 OK
-```
-
-## Checkin Tests
-
-These are tests that can be run if you have a development environment of CloudStack. Light-Weight tests such as these can be run using the simulator as the hypervisor. The run time for tests is short and you should ensure that you have run them before making a commit that could potentially break basic functionality. Instructions for setting up and running these tests is explained [here](CheckInTests)
-
-Check-In tests are the same as any other tests written using Marvin. The only additional step you need to do is ensure that your test is driven entirely by the API only. This makes it possible to run the test on a simulator. Once you have your test, you need to tag it to run on the simulator so the marvin test runner can pick it up during the checkin-test run. Then place your test module in the `test/integration/smoke` folder and it will become part of the checkin test run.
-
-For eg:
-```python
-@attr(tags =["simulator", "advanced", "smoke"])
-def test_deploy_virtualmachine(self):
-    """Tests deployment of VirtualMachine
-    """
 ```
 
 ## Guidelines to choose scenarios for integration
