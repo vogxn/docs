@@ -337,6 +337,28 @@ This is our so-called _BVT_ - basic verification tests. Tests here include those
 #### Component
 More in-depth tests drilling down the entire breadth of a feature can be found here. These are used for regression testing.
 
+#### Running Devcloud Tests
+
+Some tests have been tagged to run only for devcloud environment. In order to run these tests you can use the following command after you have setup your management server and the host only devcloud is running with `tools/devcloud/devcloud.cfg` as its deployment configuration. 
+
+```bash
+tsp@cloud:~/cloudstack# nosetests --with-marvin --marvin-config=tools/devcloud/devcloud.cfg --load -a tags='devcloud' test/integration/smoke
+
+Test Deploy Virtual Machine ... ok
+Test Stop Virtual Machine ... ok
+Test Start Virtual Machine ... ok
+Test Reboot Virtual Machine ... ok
+Test destroy Virtual Machine ... ok
+Test recover Virtual Machine ... ok
+Test destroy(expunge) Virtual Machine ... ok
+
+----------------------------------------------------------------------
+
+Ran 7 tests in 10.001s
+
+OK
+```
+
 ## User Tests
 
 The test framework by default runs all its tests under 'admin' mode which means you have admin access and visibility to resources in cloudstack. In order to run the tests as a regular user/domain-admin - you can apply the @user decorator which takes the arguments (account, domain, accounttype) at the head of your test class. The decorator will create the account and domain if they do not exist. 
@@ -631,28 +653,6 @@ The smoke tests and component tests contain attributes that can be used to filte
 
 ```bash
 $ nosetests --with-marvin --marvin-config=/path/to/config.cfg -w test_directory -a tags=advanced,tags=simulator # run tests tagged to run on an advanced zone with the simulator
-```
-
-### Running Devcloud Tests
-
-Some tests have been tagged to run only for devcloud environment. In order to run these tests you can use the following command after you have setup your management server and the host only devcloud is running with `tools/devcloud/devcloud.cfg` as its deployment configuration. 
-
-```bash
-tsp@cloud:~/cloudstack# nosetests --with-marvin --marvin-config=tools/devcloud/devcloud.cfg --load -a tags='devcloud' test/integration/smoke
-
-Test Deploy Virtual Machine ... ok
-Test Stop Virtual Machine ... ok
-Test Start Virtual Machine ... ok
-Test Reboot Virtual Machine ... ok
-Test destroy Virtual Machine ... ok
-Test recover Virtual Machine ... ok
-Test destroy(expunge) Virtual Machine ... ok
-
-----------------------------------------------------------------------
-
-Ran 7 tests in 10.001s
-
-OK
 ```
 
 ## Guidelines to choose scenarios for integration
