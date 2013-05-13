@@ -306,6 +306,89 @@ class TestDeployVM(cloudstackTestCase):
 
 Note that the testclient is available from the superclass using getClsTestClient in this case.
 
+### Checkin Tests
+
+The agent simulator and marvin are integrated into maven build phases to help you run basic tests before pushing a commit. These tests are integration tests that will test the CloudStack system as a whole. Management Server will be running during the tests with the Simulator Agent responding to hypervisor commands. For running the checkin tests, your developer environment needs to have Marvin installed and working with the latest CloudStack APIs. These tests are lightweight and should ensure that your commit doesnt break critical functionality for others working with the master branch.&nbsp;The checkin-tests utilize marvin and a one-time installation of marvin will be done so as to fetch all the related dependencies. Further updates to marvin can be done by using the sync mechanism described later in this section.
+
+These build steps are similar to the regular build, deploydb and run of the management server. Only some extra switches are required to run the tests and should be easy to recall and run anytime:
+
+#### Building
+
+Build with the `-Dsimulator` switch to enable simulator hypervisors
+```bash
+$ mvn -Pdeveloper -Dsimulator clean install
+```
+
+#### Deploying Database
+
+In addition to the regular deploydb you will be deploying the simulator database where all the agent information is stored for the mockvms, mockvolumes etc.
+```bash
+$ mvn -Pdeveloper -pl developer -Ddeploydb
+$ mvn -Pdeveloper -pl developer -Ddeploydb-simulator
+```
+
+#### Start the management server
+
+Same as regular jetty:run.
+```bash
+$ mvn -pl client jetty:run
+```
+
+> To enable the debug ports before the run
+> *export MAVEN_OPTS="-XX:MaxPermSize=512m \-Xmx2g \-Xdebug \-Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n"*
+>
+
+#### _Sync Marvin APIs_
+
+_Marvin also provides the sync facility which contacts the API discovery plugin on a running cloudstack server to rebuild its API classes and integration libraries:_
+
+_You can install/upgrade marvin using the sync mechanism as follows._
+```bash
+$ sudo mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
+```
+
+#### Run the Tests
+
+In a separate session you can use the following commands to bring up an advanced zone with two simulator hypervisors followed by run tests that are tagged to work on the simulator:
+
+*marvin.setup to bring up a zone with the config specified*
+```bash
+$ mvn -Pdeveloper,marvin.setup -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test
+```
+> Example configs are available in setup/dev/advanced.cfg and setup/dev/basic.cfg
+
+*marvin.test to run the checkin tests that are tagged to run on the simulator*
+```bash
+$ mvn -Pdeveloper,marvin.test -Dmarvin.config=setup/dev/advanced.cfg -pl :cloud-marvin integration-test
+```
+
+#### Including your own
+
+Check-In tests are the same as any other tests written using Marvin. The only additional step you need to do is ensure that your test is driven entirely by the API only. This makes it possible to run the test on a simulator. Once you have your test, you need to tag it to run on the simulator so the marvin test runner can pick it up during the checkin-test run. Then place your test module in the `test/integration/smoke` folder and it will become part of the checkin test run.
+
+For eg:
+
+```python
+@attr(tags ="simulator", "advanced", "smoke")
+def test_deploy_virtualmachine(self):
+"""Tests deployment of VirtualMachine
+"""
+    ... snip ...
+```
+
+The sample simulator configurations for advanced and basic zone is available in setup/dev/ directory. The default configuration setup/dev/advanced.cfg deploys an advanced zone with two simulator hypervisors in a single cluster in a single pod, two primary NFS storage pools and a secondary storage NFS store.&nbsp;If your test requires any extra hypervisors, storage pools, additional IP allocations, VLANs etc - you should adjust the configuration accordingly. Ensure that you have run all the checkin tests in the new configuration. For this you can directly edit the JSON file or generate a new configuration file. The setup/dev/advanced.cfg was generated as follows
+
+```bash
+$ cd tools/marvin/marvin/sandbox/advanced
+$ python advanced_env.py -i setup.properties -o advanced.cfg
+```
+These configurations are generated using the marvin configGenerator module. You can write your own configuration by following the examples shown in the configGenerator module:
+- describe_setup_in_basic_mode()
+- describe_setup_in_advanced_mode()
+- describe_setup_in_eip_mode()
+
+More detailed explanation of how the JSON configuration works is shown later sections of this tutorial.
+
 ### Existing Tests 
 
 Tests with more backend verification and complete integration of suites for network, snapshots, templates etc can be found in the `test/integration/smoke` and `test/integration/component`. Almost all of these test suites use common library wrappers written around the test framework to simplify writing tests. These libraries are part of the `marvin.integration` package. Ensure that you have gone through the existing tests related to your feature before writing your own. 
