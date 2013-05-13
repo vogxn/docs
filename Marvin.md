@@ -315,7 +315,7 @@ The integration library takes advantage of the fact that every resource - Virtua
 * delete - where we delete our resource eg: deleteVolume
 * list - where we look for some state of the resource eg: listPods
 
-Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
+> Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
 
 #### Smoke 
 This is our so-called _BVT_ - basic verification tests. Tests here include those that check the basic sanity of the cloudstack features. Include only simple tests for your feature here. If you are writing a check-in test, this the where the test module should be put.
