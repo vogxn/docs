@@ -306,7 +306,7 @@ class TestDeployVM(cloudstackTestCase):
 
 Note that the testclient is available from the superclass using getClsTestClient in this case.
 
-## Existing Tests - Smoke and Component
+### Existing Tests 
 
 Tests with more backend verification and complete integration of suites for network, snapshots, templates etc can be found in the `test/integration/smoke` and `test/integration/component`. Almost all of these test suites use common library wrappers written around the test framework to simplify writing tests. These libraries are part of the `marvin.integration` package. Ensure that you have gone through the existing tests related to your feature before writing your own. 
 
@@ -317,10 +317,10 @@ The integration library takes advantage of the fact that every resource - Virtua
 
 Marvin can auto-generate these resource classes using API discovery. The auto-generation ability is being added as part of [this refactor](MarvinRefactor)
 
-### Smoke 
+#### Smoke 
 This is our so-called _BVT_ - basic verification tests. Tests here include those that check the basic sanity of the cloudstack features. Include only simple tests for your feature here. If you are writing a check-in test, this the where the test module should be put.
 
-### Component
+#### Component
 More in-depth tests drilling down the entire breadth of a feature can be found here. These are used for regression testing.
 
 ## User Tests
